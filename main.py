@@ -539,10 +539,11 @@ def MainMenu():
             exit()
             break
         display.flip()
-        
-while 1:
-    if scene == Scene.MainMenu:
-        MainMenu()
-        mixer.music.unload()
-    elif scene == Scene.RunGame:RunGame()
-    else:AudioSelect()
+
+if __name__ == "__main__":
+    while 1:
+        if scene == Scene.MainMenu:
+            MainMenu()
+            mixer.music.unload()
+        elif scene == Scene.RunGame:RunGame()
+        else:AudioSelect()
