@@ -108,14 +108,15 @@ loginska = path.join(soundfolder,"Loginska.mp3")
 karinka = path.join(soundfolder,"Karinka.mp3")
 level_up = path.join(soundfolder,"Level Up.mp3")
 level_clear = path.join(soundfolder,"Level clear.mp3")
-title = path.join(soundfolder,choice(["title theme 1.mp3", "title theme 2.mp3"]))
+title = path.join(soundfolder,"title theme.mp3")
 game_over = path.join(soundfolder,"Game Over.mp3")
+score_clear = path.join(soundfolder,"Level clear.mp3")
+dancer_dance = path.join(soundfolder, "dancer dance.mp3")
 
 # SFX
 tetromino_placed = mixer.Sound(path.join(soundfolder, "tetromino placed.mp3"))
 line_cleared = mixer.Sound(path.join(soundfolder, "line clear.mp3"))
-
-
+dancer_cry = line_cleared
 
 TileSprites = {
     "shape01":{"shape":[(0,0),(0,1),(0,2),(0,3)],"tile":redTile},
