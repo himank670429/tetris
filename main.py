@@ -2,6 +2,7 @@ from pygame import *
 from random import choice, randint
 from os import path,listdir
 from pickle import load,dump
+from time import sleep
 
 # initialize
 init()
@@ -10,7 +11,9 @@ mixer.init()
 
 vec = math.Vector2
 shape = 0
-TileImage = 0
+nextshape = 0
+nextshapeindex = 0
+nextshapesize = (50,50)
 HorizontalTicks = 0
 VerticalTicks = 0
 VerticalTickIncrementConstant = 20
@@ -25,7 +28,6 @@ _H = 100
 Tile = 32
 border = 40 
 paused = False
-score = 0
 bgcolor = (34,33,52)
 textColor = (200,200,200)
 fontSize = 40
@@ -38,7 +40,7 @@ UIoffset = 100
 screen_width = W * Tile + UIoffset + (border*2)
 screen_height = H * Tile + (border*2)
 gameOver = False
-gameOverDuration = 10000
+gameOverDuration = 4000
 shapeAppeared = False
 
 score_pop_up_pos = (0,0)
@@ -50,6 +52,7 @@ is_score_poping_out = False
 lines = 0
 highscore = 0
 score = 0
+highscore_beaten = False
 
 current_music = None
 
@@ -64,6 +67,7 @@ for x in range(W):
 fileFolder = path.dirname(__file__)
 AssetsFolder = path.join(fileFolder,"Assets")
 spritesFolder = path.join(AssetsFolder,"sprites")
+animationFolder = path.join(AssetsFolder,"animation_sprites")
 tileFolder = path.join(spritesFolder,"tile")
 backgroundFolder = path.join(spritesFolder,"background")
 FontFolder = path.join(AssetsFolder,"fonts")
@@ -95,11 +99,23 @@ greenTile = image.load(path.join(tileFolder,"green.png"))
 whiteTile = image.load(path.join(tileFolder,"white.png"))
 
 # GUI
-messageboxImage = image.load(path.join(GUIfolder,"messagebox.png"))
-messageboxImage = transform.scale(messageboxImage,(_W,_H))
+messageboxImage = transform.scale(image.load(path.join(GUIfolder,"messagebox.png")),(_W,_H))
+trophy = transform.scale(image.load(path.join(GUIfolder, "trophy.png")), (50,50))
+
 
 # font loading
 gameFont = path.join(FontFolder,"gameFont.ttf")
+
+# animation sprites
+animations = {
+    types : [
+        image.load(f'{animationFolder}//{types}//{frame}')
+        for frame in listdir(f'{animationFolder}//{types}')
+    ] 
+    for types in listdir(animationFolder)
+}
+
+dance_animations = ["dancer_leg_hand", "dancer_flips"]
 
 # musics
 troika = path.join(soundfolder,"Torika.mp3")
@@ -110,22 +126,31 @@ level_up = path.join(soundfolder,"Level Up.mp3")
 level_clear = path.join(soundfolder,"Level clear.mp3")
 title = path.join(soundfolder,"title theme.mp3")
 game_over = path.join(soundfolder,"Game Over.mp3")
-score_clear = path.join(soundfolder,"Level clear.mp3")
 dancer_dance = path.join(soundfolder, "dancer dance.mp3")
 
 # SFX
+score_clear = mixer.Sound(path.join(soundfolder,"Level clear.mp3"))
 tetromino_placed = mixer.Sound(path.join(soundfolder, "tetromino placed.mp3"))
 line_cleared = mixer.Sound(path.join(soundfolder, "line clear.mp3"))
 dancer_cry = line_cleared
 
 TileSprites = {
-    "shape01":{"shape":[(0,0),(0,1),(0,2),(0,3)],"tile":redTile},
-    "shape02":{"shape":[(0,0),(0,1),(1,0),(1,1)],"tile":blueTile},
-    "shape03":{"shape":[(0,0),(0,1),(0,2),(1,1)],"tile":brownTile},
-    "shape04":{"shape":[(1,0),(1,1),(0,1),(0,2)],"tile":cyanTile},
-    "shape05":{"shape":[(0,0),(0,1),(0,2),(1,2)],"tile":pinkTile},
-    "shape06":{"shape":[(0,0),(0,1),(1,1),(1,2)],"tile":greenTile},
-    "shape07":{"shape":[(1,0),(1,1),(1,2),(0,2)],"tile":orangeTile}
+    1:{"shape":[(0,0),(0,1),(0,2),(0,3)],"tile":redTile},
+    2:{"shape":[(0,0),(0,1),(1,0),(1,1)],"tile":blueTile},
+    3:{"shape":[(0,0),(0,1),(0,2),(1,1)],"tile":brownTile},
+    4:{"shape":[(1,0),(1,1),(0,1),(0,2)],"tile":cyanTile},
+    5:{"shape":[(0,0),(0,1),(0,2),(1,2)],"tile":pinkTile},
+    6:{"shape":[(0,0),(0,1),(1,1),(1,2)],"tile":greenTile},
+    7:{"shape":[(1,0),(1,1),(1,2),(0,2)],"tile":orangeTile}
+}
+nextshapes = {
+    1 : transform.scale2x(image.load(path.join(GUIfolder, 'straight line.png'))),
+    2 : transform.scale2x(image.load(path.join(GUIfolder, 'O.png'))),
+    3 : transform.scale2x(image.load(path.join(GUIfolder, 'T.png'))),
+    4 : transform.scale2x(image.load(path.join(GUIfolder, 'cyan Z.png'))),
+    5 : transform.scale2x(image.load(path.join(GUIfolder, 'pink L.png'))),
+    6 : transform.scale2x(image.load(path.join(GUIfolder, 'green Z.png'))),
+    7 : transform.scale2x(image.load(path.join(GUIfolder, 'orange L.png')))
 }
 
 # initialize the staitic tiles with white colors
@@ -138,6 +163,7 @@ class Scene:
     MainMenu = 1
     AudioSelect = 2
     RunGame = 3
+    EndGame = 4
 
 scene = Scene.MainMenu
 
@@ -158,17 +184,48 @@ class button():
     def render(self):
         screen.blit(self.textsurf,self.textrect)
 
+class AnimatedSprite:
+    def __init__(self,animation_sprites, pos, align = "center", size = None):
+        self.frames = animation_sprites
+        self.pos = pos
+        self.current_frame_index = 0
+        self.start = self.now = time.get_ticks()
+        self.align = align
+        self.size = size
+
+    def animate(self, sound=None, frame = 1):
+        global screen
+        current_frame = self.frames[self.current_frame_index]
+        if self.size: current_frame = transform.scale(current_frame, self.size)
+        if self.align == "center":
+            screen.blit(current_frame, (
+                self.pos[0] - (current_frame.get_width()/2), # x corrdinate
+                self.pos[1] - (current_frame.get_height()/2) # y coordiante
+            ))
+        else:
+            screen.blit(current_frame, (
+                self.pos[0] - (current_frame.get_width()), # x corrdinate
+                self.pos[1] - (current_frame.get_height()) # y coordiante
+            ))
+        if self.now - self.start > 400:
+            self.current_frame_index += 1
+            self.current_frame_index %= len(self.frames)
+            self.start = self.now
+            if sound and self.current_frame_index == frame: sound.play()
+        self.now = time.get_ticks()
+
 def newshape(index):
-    global TileImage
-    shape = []
-    sprite = choice([s for s in TileSprites])
-    tileshape = TileSprites[sprite]["shape"]
-    TileImage = TileSprites[sprite]["tile"]
+    shape = {
+        "points" : [],
+        "tile":None,
+    }
+    tileshape = TileSprites[index]["shape"]
+    shape["tile"] = TileSprites[index]["tile"]
     offset = randint(4,5)
     for point in tileshape:
         x = point[0]+offset
         y = point[1]
-        shape.append(vec(x,y))
+        shape["points"].append(vec(x,y))
     return shape
 
 def collide(shape_,deltax = 0,deltay = 0):
@@ -202,21 +259,51 @@ def updatestaticshape(row_y):
                 area[(x,y)] = area[(x,y-1)]
 
 def checkrow(shape):
-    global lines
+    global lines, accelarating
+    row_appeared = 0
+    lines_appeared = 0
     y = max([point.y for point in shape])
     for dy in range(4):
         _y = y - dy
         if _y < 0:
             return
         while isRowAppear(_y):
-            deleteRow(_y)
-            line_cleared.play()
-            updatestaticshape(_y)
+            # delete row
+            global nextshape
+            # animation
+            _x = 0
+            now = start = time.get_ticks()
+            while _x < W:
+                display.update()
+                screen.blit(bgImage,(0,0))
+                drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
+                drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
+                drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
+                for Event in event.get():
+                    if Event.type == QUIT:
+                        quit()
+                        exit()
+                if now - start > 10:
+                    area[(_x,y)] = False
+                    _x += 1
+                    start = now
+                now = time.get_ticks()
+                # static shape draw
+                for point in area:
+                    x = point[0]
+                    y = point[1]
+                    if (area[(int(x),int(y))]):
+                        screen.blit(StaticTileImage,(x*Tile + border,y*Tile + border))
+                # nextshape draw
+                screen.blit(nextshape,(screen_width-100,screen_height/2+10))
+            
+            row_appeared = 1
+            lines_appeared += 1
             lines += 1
-
-def deleteRow(y):
-    for x in range(W):
-        area[(x,y)] = False
+            updatestaticshape(_y)
+    if row_appeared :
+        line_cleared.play()        
+        accelarating = 0
 
 def isRowAppear(y):
     for x in range(W):
@@ -226,7 +313,7 @@ def isRowAppear(y):
 
 def spaceToRotate(shape_):
     center = shape_[1]
-    for point in shape:
+    for point in shape_:
         x1 = int(center.x - point.x)
         y1 = int(center.y - point.y)
         x2 = center.x + y1
@@ -271,10 +358,6 @@ def game_over_animation():
     mixer.music.play()
     while (now-start < gameOverDuration):
         displaymessage("gameOver")
-        # screen.blit(bgImage,(0,0))
-        # drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
-        # drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
-        # drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
         display.update()
         for Event in event.get():
             if Event.type == QUIT:
@@ -282,8 +365,13 @@ def game_over_animation():
             if Event.type == KEYDOWN:
                 if Event.key == K_SPACE or Event.key == K_RETURN:
                     mixer.music.unload()
+
                     return
         now = time.get_ticks()
+
+def dancer_animation(dancer, type):
+    pass
+
 
 def level_up_animation():
     global level_up_animation_tick,accelarating
@@ -304,14 +392,66 @@ def level_up_animation():
             if Event.type == KEYDOWN:
                 return
         display.update()
+        now = time.get_ticks()
+    # dancer_animation()
 
 # loading stuff
 with open(path.join(fileFolder,datafile),"rb") as file:
     highscore = load(file)
 
+
 # scenes
+def EndGame():
+    start = now = time.get_ticks()
+    global scene, highscore_beaten
+    # initialize the dancer
+    click = False
+    dancer = None
+    flag = 1
+    text1 = text2 = None
+    if (highscore_beaten):
+        score_clear.play()
+        dancer = AnimatedSprite(animations["dancer_jumps"], (screen_width/2-100, 200), align="center", size = (100,100))
+        text1 = "congractulations! you are"
+        text2 = "the best player yet!!"
+    else:
+        dancer = AnimatedSprite(animations["dancer_cry"], (screen_width/2-100, 200), align="center", size = (100,100)) 
+        text1 = "you couldn't beat"   
+        text2 = "the high score!!"
+    exit_button = button(screen_width/2, screen_height/2+200,"main menu",30,gameFont,textColor)
+    # run the loop
+    while flag:
+        screen.blit(EmptyBackground, (0,0))
+        # do the animation stuff
+        dancer.animate(sound = dancer_cry, frame = 1)
+        if (highscore_beaten):
+            screen.blit(trophy, (125, 80))
+        drawText(screen, (screen_width/2+70, 170), textColor, gameFont, 30, f"your score : {score}", align="center")
+        drawText(screen, (screen_width/2+70, 220), textColor, gameFont, 30, f"highsocre : {highscore}", align="center")
+        drawText(screen, (screen_width/2, screen_height/2), textColor, gameFont, 30, text1, align="center")
+        drawText(screen, (screen_width/2, screen_height/2+40), textColor, gameFont, 30, text2, align="center")
+        exit_button.render()
+        click = False
+        display.update()
+        for Event in event.get():
+            if Event.type == QUIT: exit()
+            if Event.type == MOUSEBUTTONDOWN: click = True
+            if exit_button.isCMousePointerCollide() and click: flag = 0
+        if now - start > 10000:
+            flag = 0
+        now = time.get_ticks()
+
+    # after it gets out of while loop
+    screen.blit(EmptyBackground,(0,0))
+    display.update()
+    sleep(2)
+    scene = Scene.MainMenu
+    highscore_beaten = False
+    score_clear.stop()
+
+
 def RunGame():
-    global HorizontalTicks,VerticalTicks,shapeAppeared,score,gameOver,paused,shape,accelarating,Level,lines,previouslines,LineCheckConstant,score,highscore,StaticTileImage,StaticTileColors,StaticTileindex,current_music, scene
+    global HorizontalTicks,VerticalTicks,shapeAppeared,score,gameOver,paused,shape,nextshape,nextshapeindex,accelarating,Level,lines,previouslines,LineCheckConstant,score,highscore,StaticTileImage,StaticTileColors,StaticTileindex,current_music, scene
     if current_music != "None":
         mixer.music.load(current_music)
         mixer.music.play(-1)
@@ -365,17 +505,22 @@ def RunGame():
 
         # calculate shapes
         if not shapeAppeared and not gameOver:
-            index = randint(0,6)
-            shape = newshape(index)
-            if spaceToSpawn(shape):
+            # calculate new shapes if next shape is not calculated
+            if not nextshapeindex:
+                shape = newshape(2)
+            else:
+                shape = newshape(nextshapeindex)
+            if spaceToSpawn(shape["points"]):
                 shapeAppeared = True
             else:
                 gameOver = True
-
+            # calculate next shape
+            nextshapeindex = 2
+            nextshape = nextshapes[nextshapeindex]
         
         # screen draw
         screen.blit(bgImage,(0,0))
-        
+
         # draw score/high-score/lines
         drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
         drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # hight score
@@ -383,29 +528,29 @@ def RunGame():
         # update gameplay
         if not paused and not gameOver:
             # move <-->
-            if not collide(shape,deltax = dx):
-                for point in shape:
+            if not collide(shape['points'],deltax = dx):
+                for point in shape['points']:
                     point.x += dx
 
             # move down and row detection
             if time.get_ticks() > VerticalTicks:
                 VerticalTicks = time.get_ticks() + verticalDelay
-                if collide(shape,deltay = 1):
+                if collide(shape['points'],deltay = 1):
                     tetromino_placed.play()
-                    registerStaticShape(shape)
+                    registerStaticShape(shape['points'])
                     shapeAppeared = False
-                    checkrow(shape)
+                    checkrow(shape['points'])
                     score += 50
                     
-                if not collide(shape,deltay = 1):
-                    for point in shape:
+                if not collide(shape['points'],deltay = 1):
+                    for point in shape['points']:
                         point.y += 1
 
             # rotation
             if rotate:
-                if not spaceToRotate(shape):
-                    center = shape[1]
-                    for point in shape:
+                if not spaceToRotate(shape["points"]):
+                    center = shape['points'][1]
+                    for point in shape['points']:
                         x1 = int(center.x - point.x)
                         y1 = int(center.y - point.y)
                         x2 = center.x + y1
@@ -413,10 +558,10 @@ def RunGame():
                         point.x,point.y = x2,y2
 
         # shapes draw
-        for point in shape:
+        for point in shape['points']:
             x = point.x * Tile + border
             y = point.y * Tile + border
-            screen.blit(TileImage,(x,y))
+            screen.blit(shape['tile'],(x,y))
 
         # static shape draw
         for point in area:
@@ -424,6 +569,8 @@ def RunGame():
             y = point[1]
             if (area[(int(x),int(y))]):
                 screen.blit(StaticTileImage,(x*Tile + border,y*Tile + border))
+        # nextshape draw
+        screen.blit(nextshape,(screen_width-100,screen_height/2+10))
         # game over
         if gameOver:
             # unload current music
@@ -433,18 +580,15 @@ def RunGame():
             # clear area
             for point in area:
                 area[point] = False
-            # load music back
-            if current_music != "None":
-                mixer.music.load(current_music)
-                mixer.music.play(-1)
 
             # reset the Acelaration
             accelarating = False
             if score > highscore:
                 highscore = score
+                highscore_beaten = True
             score = 0
             gameOver = False
-            scene = Scene.AudioSelect
+            scene = Scene.EndGame
             current_music = None
             return
         # level up
@@ -546,5 +690,8 @@ if __name__ == "__main__":
         if scene == Scene.MainMenu:
             MainMenu()
             mixer.music.unload()
+        elif scene == Scene.EndGame:
+            EndGame()
+            # mixer.music.unload()
         elif scene == Scene.RunGame:RunGame()
         else:AudioSelect()
