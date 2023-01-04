@@ -18,7 +18,7 @@ HorizontalTicks = 0
 VerticalTicks = 0
 VerticalTickIncrementConstant = 20
 BaseVerticalsTicks = 600
-LineCheckConstant = 30
+LineCheckConstant = 1
 previouslines = 0
 accelarating = False
 W = 10
@@ -193,6 +193,15 @@ class AnimatedSprite:
         self.align = align
         self.size = size
 
+    def get_pos(self):
+        return self.pos
+    
+    def set_pos(self, newpos):
+        self.pos = newpos
+    
+    def set_animation_frames(self, newframe):
+        self.frames = newframe
+
     def animate(self, sound=None, frame = 1):
         global screen
         current_frame = self.frames[self.current_frame_index]
@@ -268,6 +277,8 @@ def checkrow(shape):
         if _y < 0:
             return
         while isRowAppear(_y):
+            # for _x in range(W):
+            #     area[(_x,_y)] = False
             # delete row
             global nextshape
             # animation
@@ -284,7 +295,7 @@ def checkrow(shape):
                         quit()
                         exit()
                 if now - start > 10:
-                    area[(_x,y)] = False
+                    area[(_x,_y)] = False
                     _x += 1
                     start = now
                 now = time.get_ticks()
@@ -369,17 +380,46 @@ def game_over_animation():
                     return
         now = time.get_ticks()
 
-def dancer_animation(dancer, type):
-    pass
+def dancer_animation():
+    print("dancer animating")
+    mixer.music.load(dancer_dance)
+    mixer.music.play()
+    walking = 1
+    walkin_speed = .12
+    dancer = AnimatedSprite(animations['dancer_walks_right'],(-10, screen_height-border),align="bottom", size = (100,100))
+    while True:
+        screen.blit(bgImage,(0,0))
+        drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
+        drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
+        drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
+        if walking and dancer.get_pos()[0] < screen_width/2:
+            dancer_pos = dancer.get_pos()
+            dancer.set_pos((dancer_pos[0] + walkin_speed, dancer_pos[1]))
+        if dancer.get_pos()[0] >= screen_width/2:
+            walkin = 0
+            dancer.set_animation_frames(animations["dancer_leg_hand"])
+        if not mixer.music.get_busy():
+            mixer.music.unload()
+            return
+        for Event in event.get():
+            if Event.type == QUIT:
+                exit()
+            if Event.type == KEYDOWN:
+                mixer.music.unload()
+                return
+        dancer.animate()
+        display.update()
+
 
 
 def level_up_animation():
+    flag = 1
     global level_up_animation_tick,accelarating
     start = time.get_ticks()
     now = time.get_ticks()
     mixer.music.load(level_up)
     mixer.music.play()
-    while (now-start < level_up_message_tick):
+    while (now-start < level_up_message_tick) and flag:
         screen.blit(bgImage,(0,0))
         drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
         drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
@@ -390,10 +430,10 @@ def level_up_animation():
                 quit()
                 exit()
             if Event.type == KEYDOWN:
-                return
+                flag = 0
         display.update()
         now = time.get_ticks()
-    # dancer_animation()
+    dancer_animation()
 
 # loading stuff
 with open(path.join(fileFolder,datafile),"rb") as file:
@@ -507,7 +547,7 @@ def RunGame():
         if not shapeAppeared and not gameOver:
             # calculate new shapes if next shape is not calculated
             if not nextshapeindex:
-                shape = newshape(2)
+                shape = newshape(randint(1,7))
             else:
                 shape = newshape(nextshapeindex)
             if spaceToSpawn(shape["points"]):
@@ -515,7 +555,7 @@ def RunGame():
             else:
                 gameOver = True
             # calculate next shape
-            nextshapeindex = 2
+            nextshapeindex = randint(1,7)
             nextshape = nextshapes[nextshapeindex]
         
         # screen draw
