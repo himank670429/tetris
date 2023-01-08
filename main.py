@@ -61,7 +61,7 @@ screen = display.set_mode((screen_width, screen_height))
 area = {}
 for x in range(W):
     for y in range(H):
-        area[(x,y)] = False
+        area[(x,y)] = 0
 
 # folder and file paths
 fileFolder = path.dirname(__file__)
@@ -185,13 +185,71 @@ class button():
         screen.blit(self.textsurf,self.textrect)
 
 class AnimatedSprite:
-    def __init__(self,animation_sprites, pos, align = "center", size = None):
+    def __init__(self,animation_sprites, pos, fps = 4, align = "center", size = None):
         self.frames = animation_sprites
         self.pos = pos
         self.current_frame_index = 0
         self.start = self.now = time.get_ticks()
         self.align = align
         self.size = size
+        self.fps = fps
+        if self.size:
+            sprite_pos = None
+            if self.align == "center":
+                sprite_pos = (
+                    self.pos[0] - (size[0]/2),
+                    self.pos[1] - (size[1]/2)
+                )
+
+            elif self.align == "topleft":
+                sprite_pos = (
+                    self.pos[0],
+                    self.pos[1]
+                )
+
+            elif self.align == "top":
+                sprite_pos = (
+                    self.pos[0] - (size[0]/2),
+                    self.pos[1]
+                )
+
+            elif self.align == "topright":
+                sprite_pos = (
+                    self.pos[0] - (size[0]),
+                    self.pos[1]
+                )
+
+            elif self.align == "bottomleft":
+                sprite_pos = (
+                    self.pos[0],
+                    self.pos[1] - (size[1])
+                )
+
+            elif self.align == "bottom":
+                sprite_pos = (
+                    self.pos[0] - (size[0]/2),
+                    self.pos[1] - (size[1])
+                )
+            
+            elif self.align == "bottomright":
+                sprite_pos = (
+                    self.pos[0] - (size[0]),
+                    self.pos[1] - (size[1])
+
+                )
+            
+            elif self.align == "right":
+                sprite_pos = (
+                    self.pos[0] - (size[0]),
+                    self.pos[1] - (size[1]/2)
+                )
+            
+            elif self.align == "left":
+                sprite_pos = (
+                    self.pos[0],
+                    self.pos[1] - (size[1]/2)
+                )
+            self.pos = sprite_pos
 
     def get_pos(self):
         return self.pos
@@ -201,22 +259,14 @@ class AnimatedSprite:
     
     def set_animation_frames(self, newframe):
         self.frames = newframe
+        self.current_frame_index = 0
 
     def animate(self, sound=None, frame = 1):
         global screen
         current_frame = self.frames[self.current_frame_index]
         if self.size: current_frame = transform.scale(current_frame, self.size)
-        if self.align == "center":
-            screen.blit(current_frame, (
-                self.pos[0] - (current_frame.get_width()/2), # x corrdinate
-                self.pos[1] - (current_frame.get_height()/2) # y coordiante
-            ))
-        else:
-            screen.blit(current_frame, (
-                self.pos[0] - (current_frame.get_width()), # x corrdinate
-                self.pos[1] - (current_frame.get_height()) # y coordiante
-            ))
-        if self.now - self.start > 400:
+        screen.blit(current_frame, (self.pos))
+        if self.now - self.start > (1/self.fps)*1000:
             self.current_frame_index += 1
             self.current_frame_index %= len(self.frames)
             self.start = self.now
@@ -381,26 +431,58 @@ def game_over_animation():
         now = time.get_ticks()
 
 def dancer_animation():
-    print("dancer animating")
     mixer.music.load(dancer_dance)
     mixer.music.play()
-    walking = 1
-    walkin_speed = .12
-    dancer = AnimatedSprite(animations['dancer_walks_right'],(-10, screen_height-border),align="bottom", size = (100,100))
+    walkin_speed = .17
+    start = now = time.get_ticks()
+    animation_state = "coming"
+    # coming
+    # dancing
+    dance_animation_index = randint(0,1)
+    dancer = AnimatedSprite(animations['dancer_walks_right'],(border+60, screen_height-border),align="bottom", size = (100,100), fps = 7)
+
     while True:
         screen.blit(bgImage,(0,0))
         drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
         drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
         drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
-        if walking and dancer.get_pos()[0] < screen_width/2:
+    
+        if animation_state == "coming":
             dancer_pos = dancer.get_pos()
             dancer.set_pos((dancer_pos[0] + walkin_speed, dancer_pos[1]))
-        if dancer.get_pos()[0] >= screen_width/2:
-            walkin = 0
-            dancer.set_animation_frames(animations["dancer_leg_hand"])
-        if not mixer.music.get_busy():
-            mixer.music.unload()
+        
+        if dancer.get_pos()[0] >= (screen_width/2 - border*2) and animation_state == "coming":
+            animation_state = "dancing"
+            dancer.set_animation_frames(animations[dance_animations[dance_animation_index]])
+            
+        if animation_state == "dancing":
+            if now - start > 2600:
+                start = now
+                dance_animation_index += 1
+                dance_animation_index %= len(dance_animations)
+                dancer.set_animation_frames(animations[dance_animations[dance_animation_index]])
+            now = time.get_ticks()
+
+        if animation_state == "idle":
+            if now - start > 1200:
+                animation_state = "returning"
+                dancer.set_animation_frames(animations['dancer_walks_left'])
+            now = time.get_ticks()
+        
+        if animation_state == "returning":
+            dancer_pos = dancer.get_pos()
+            dancer.set_pos((dancer_pos[0] - walkin_speed, dancer_pos[1]))
+
+        if dancer.get_pos()[0] < (border*3 - 60) and animation_state == "returning":
             return
+
+        if not mixer.music.get_busy():
+            if animation_state == "dancing":
+                dancer.set_animation_frames(animations["dancer_idle"])
+                animation_state = "idle"
+                now = start = time.get_ticks()
+                start = now = time.get_ticks()
+            mixer.music.unload()
         for Event in event.get():
             if Event.type == QUIT:
                 exit()
