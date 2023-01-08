@@ -18,7 +18,7 @@ HorizontalTicks = 0
 VerticalTicks = 0
 VerticalTickIncrementConstant = 20
 BaseVerticalsTicks = 600
-LineCheckConstant = 1
+LineCheckConstant = 30
 previouslines = 0
 accelarating = False
 W = 10
@@ -340,6 +340,7 @@ def checkrow(shape):
                 drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
                 drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
                 drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
+                drawText(screen,(415,500),textColor,gameFont,20,f'{Level}',align="center") # level
                 for Event in event.get():
                     if Event.type == QUIT:
                         quit()
@@ -446,6 +447,7 @@ def dancer_animation():
         drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
         drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
         drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
+        drawText(screen,(415,500),textColor,gameFont,20,f'{Level}',align="center") # level
     
         if animation_state == "coming":
             dancer_pos = dancer.get_pos()
@@ -506,6 +508,7 @@ def level_up_animation():
         drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
         drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # high score
         drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
+        drawText(screen,(415,500),textColor,gameFont,20,f'{Level}',align="center") # level
         displaymessage("level up")
         for Event in event.get():
             if Event.type == QUIT:
@@ -647,6 +650,7 @@ def RunGame():
         drawText(screen,(415,120),textColor,gameFont,20,f'{lines}',align="center")  # lines
         drawText(screen,(415,220),textColor,gameFont,20,f'{highscore}',align="center")  # hight score
         drawText(screen,(415,295),textColor,gameFont,20,f'{score}',align="center")  # score
+        drawText(screen,(415,500),textColor,gameFont,20,f'{Level}',align="center") # level
         # update gameplay
         if not paused and not gameOver:
             # move <-->
@@ -814,6 +818,5 @@ if __name__ == "__main__":
             mixer.music.unload()
         elif scene == Scene.EndGame:
             EndGame()
-            # mixer.music.unload()
         elif scene == Scene.RunGame:RunGame()
         else:AudioSelect()
