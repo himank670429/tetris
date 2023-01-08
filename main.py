@@ -132,6 +132,7 @@ dancer_dance = path.join(soundfolder, "dancer dance.mp3")
 score_clear = mixer.Sound(path.join(soundfolder,"Level clear.mp3"))
 tetromino_placed = mixer.Sound(path.join(soundfolder, "tetromino placed.mp3"))
 line_cleared = mixer.Sound(path.join(soundfolder, "line clear.mp3"))
+bonus_score = mixer.Sound(path.join(soundfolder, "bonus_score.waw"))
 dancer_cry = line_cleared
 
 TileSprites = {
@@ -366,6 +367,9 @@ def checkrow(shape):
     if row_appeared :
         line_cleared.play()        
         accelarating = 0
+    if lines_appeared == 4:
+        bonus_score.play()
+        score += 500
 
 def isRowAppear(y):
     for x in range(W):
@@ -423,6 +427,9 @@ def game_over_animation():
         display.update()
         for Event in event.get():
             if Event.type == QUIT:
+                # close high score before quiting
+                with open(path.join(fileFolder,datafile),"wb") as file:
+                    dump(max(score,highscore),file)
                 exit()
             if Event.type == KEYDOWN:
                 if Event.key == K_SPACE or Event.key == K_RETURN:
@@ -487,6 +494,9 @@ def dancer_animation():
             mixer.music.unload()
         for Event in event.get():
             if Event.type == QUIT:
+                # close high score before quiting
+                with open(path.join(fileFolder,datafile),"wb") as file:
+                    dump(max(score,highscore),file)
                 exit()
             if Event.type == KEYDOWN:
                 mixer.music.unload()
@@ -512,6 +522,9 @@ def level_up_animation():
         displaymessage("level up")
         for Event in event.get():
             if Event.type == QUIT:
+                # close high score before quiting
+                with open(path.join(fileFolder,datafile),"wb") as file:
+                    dump(max(score,highscore),file)
                 quit()
                 exit()
             if Event.type == KEYDOWN:
@@ -528,7 +541,7 @@ with open(path.join(fileFolder,datafile),"rb") as file:
 # scenes
 def EndGame():
     start = now = time.get_ticks()
-    global scene, highscore_beaten
+    global scene, highscore_beaten, score, highscore
     # initialize the dancer
     click = False
     dancer = None
@@ -536,11 +549,11 @@ def EndGame():
     text1 = text2 = None
     if (highscore_beaten):
         score_clear.play()
-        dancer = AnimatedSprite(animations["dancer_jumps"], (screen_width/2-100, 200), align="center", size = (100,100))
+        dancer = AnimatedSprite(animations["dancer_jumps"], (screen_width/2-110, 200), align="center", size = (100,100))
         text1 = "congractulations! you are"
         text2 = "the best player yet!!"
     else:
-        dancer = AnimatedSprite(animations["dancer_cry"], (screen_width/2-100, 200), align="center", size = (100,100)) 
+        dancer = AnimatedSprite(animations["dancer_cry"], (screen_width/2-110, 200), align="center", size = (100,100)) 
         text1 = "you couldn't beat"   
         text2 = "the high score!!"
     exit_button = button(screen_width/2, screen_height/2+200,"main menu",30,gameFont,textColor)
@@ -550,7 +563,7 @@ def EndGame():
         # do the animation stuff
         dancer.animate(sound = dancer_cry, frame = 1)
         if (highscore_beaten):
-            screen.blit(trophy, (125, 80))
+            screen.blit(trophy, (115, 80))
         drawText(screen, (screen_width/2+70, 170), textColor, gameFont, 30, f"your score : {score}", align="center")
         drawText(screen, (screen_width/2+70, 220), textColor, gameFont, 30, f"highsocre : {highscore}", align="center")
         drawText(screen, (screen_width/2, screen_height/2), textColor, gameFont, 30, text1, align="center")
@@ -559,7 +572,11 @@ def EndGame():
         click = False
         display.update()
         for Event in event.get():
-            if Event.type == QUIT: exit()
+            if Event.type == QUIT:
+                # close high score before quiting
+                with open(path.join(fileFolder,datafile),"wb") as file:
+                    dump(max(score,highscore),file)
+                exit()
             if Event.type == MOUSEBUTTONDOWN: click = True
             if exit_button.isCMousePointerCollide() and click: flag = 0
         if now - start > 10000:
@@ -569,14 +586,20 @@ def EndGame():
     # after it gets out of while loop
     screen.blit(EmptyBackground,(0,0))
     display.update()
-    sleep(2)
+    sleep(1)
     scene = Scene.MainMenu
-    highscore_beaten = False
+    if highscore_beaten:
+        highscore = score
+        score = 0
+        highscore_beaten = False
+    # saving high score
+    with open(path.join(fileFolder,datafile),"wb") as file:
+        dump(max(score,highscore),file)
     score_clear.stop()
 
 
 def RunGame():
-    global HorizontalTicks,VerticalTicks,shapeAppeared,score,gameOver,paused,shape,nextshape,nextshapeindex,accelarating,Level,lines,previouslines,LineCheckConstant,score,highscore,StaticTileImage,StaticTileColors,StaticTileindex,current_music, scene
+    global HorizontalTicks,VerticalTicks,shapeAppeared,score,gameOver,paused,shape,nextshape,nextshapeindex,accelarating,Level,lines,previouslines,LineCheckConstant,score,highscore,StaticTileImage,StaticTileColors,StaticTileindex,current_music, scene, highscore_beaten
     if current_music != "None":
         mixer.music.load(current_music)
         mixer.music.play(-1)
@@ -592,13 +615,16 @@ def RunGame():
             if Event.type == QUIT:
                 # close high score before quiting
                 with open(path.join(fileFolder,datafile),"wb") as file:
-                    dump(highscore,file)
+                    dump(max(score,highscore),file)
                 exit()
             if Event.type == KEYDOWN:
                 if Event.key == K_UP:rotate = True
                 if Event.key == K_LEFT:dx = -1
                 if Event.key == K_RIGHT:dx = 1
-                if Event.key == K_ESCAPE: paused = not paused
+                if Event.key == K_ESCAPE: 
+                    paused = not paused
+                    if (not paused):
+                        mixer.music.play()
                 if Event.key == K_DOWN:
                     accelarating = True
                     VerticalTicks = time.get_ticks()
@@ -632,7 +658,8 @@ def RunGame():
         if not shapeAppeared and not gameOver:
             # calculate new shapes if next shape is not calculated
             if not nextshapeindex:
-                shape = newshape(randint(1,7))
+                shape = newshape(1)
+                # shape = newshape(randint(1,7))
             else:
                 shape = newshape(nextshapeindex)
             if spaceToSpawn(shape["points"]):
@@ -640,7 +667,8 @@ def RunGame():
             else:
                 gameOver = True
             # calculate next shape
-            nextshapeindex = randint(1,7)
+            # nextshapeindex = randint(1,7)
+            nextshapeindex = 1
             nextshape = nextshapes[nextshapeindex]
         
         # screen draw
@@ -710,9 +738,7 @@ def RunGame():
             # reset the Acelaration
             accelarating = False
             if score > highscore:
-                highscore = score
                 highscore_beaten = True
-            score = 0
             gameOver = False
             scene = Scene.EndGame
             current_music = None
@@ -763,6 +789,9 @@ def AudioSelect():
         click = False
         for Event in event.get():
             if Event.type == QUIT:
+                # close high score before quiting
+                with open(path.join(fileFolder,datafile),"wb") as file:
+                    dump(max(score,highscore),file)
                 quit()
                 exit()
             if Event.type == MOUSEBUTTONDOWN:
@@ -795,7 +824,9 @@ def MainMenu():
         screen.blit(MainMenuImage,(0,0))
         for _event in event.get():
             if _event.type == QUIT:
-                
+                # close high score before quiting
+                with open(path.join(fileFolder,datafile),"wb") as file:
+                    dump(max(score,highscore),file)
                 quit()
                 exit()
             if _event.type == MOUSEBUTTONDOWN:
@@ -808,7 +839,6 @@ def MainMenu():
         if quitbutton.isCMousePointerCollide() and click:
             quit()
             exit()
-            break
         display.flip()
 
 if __name__ == "__main__":
