@@ -1,5 +1,5 @@
 from pygame import *
-from random import choice, randint
+from random import randint
 from os import path,listdir
 from pickle import load,dump
 from time import sleep
