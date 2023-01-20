@@ -14,7 +14,7 @@ classic 1980's tetris implemented in python using the pygame library
 `git clone "https://github.com/himank670429/tetris.git"`
 
 * next type this command : <br>
-`pip install -r dependencies.txt`
+`pip install -r requirements.txt`
 
 ---
 

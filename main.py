@@ -132,7 +132,6 @@ dancer_dance = path.join(soundfolder, "dancer dance.mp3")
 score_clear = mixer.Sound(path.join(soundfolder,"Level clear.mp3"))
 tetromino_placed = mixer.Sound(path.join(soundfolder, "tetromino placed.mp3"))
 line_cleared = mixer.Sound(path.join(soundfolder, "line clear.mp3"))
-bonus_score = mixer.Sound(path.join(soundfolder, "bonus_score.waw"))
 dancer_cry = line_cleared
 
 TileSprites = {
@@ -281,7 +280,7 @@ def newshape(index):
     }
     tileshape = TileSprites[index]["shape"]
     shape["tile"] = TileSprites[index]["tile"]
-    offset = randint(4,5)
+    offset = 4
     for point in tileshape:
         x = point[0]+offset
         y = point[1]
@@ -319,7 +318,7 @@ def updatestaticshape(row_y):
                 area[(x,y)] = area[(x,y-1)]
 
 def checkrow(shape):
-    global lines, accelarating
+    global lines, accelarating, score, highscore
     row_appeared = 0
     lines_appeared = 0
     y = max([point.y for point in shape])
@@ -368,7 +367,6 @@ def checkrow(shape):
         line_cleared.play()        
         accelarating = 0
     if lines_appeared == 4:
-        bonus_score.play()
         score += 500
 
 def isRowAppear(y):
@@ -603,6 +601,7 @@ def RunGame():
     if current_music != "None":
         mixer.music.load(current_music)
         mixer.music.play(-1)
+    lines = 0
     # Variables
     while True:
         rotate = False
@@ -658,8 +657,7 @@ def RunGame():
         if not shapeAppeared and not gameOver:
             # calculate new shapes if next shape is not calculated
             if not nextshapeindex:
-                shape = newshape(1)
-                # shape = newshape(randint(1,7))
+                shape = newshape(randint(1,7))
             else:
                 shape = newshape(nextshapeindex)
             if spaceToSpawn(shape["points"]):
@@ -667,8 +665,7 @@ def RunGame():
             else:
                 gameOver = True
             # calculate next shape
-            # nextshapeindex = randint(1,7)
-            nextshapeindex = 1
+            nextshapeindex = randint(1,7)
             nextshape = nextshapes[nextshapeindex]
         
         # screen draw
