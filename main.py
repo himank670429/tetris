@@ -366,8 +366,14 @@ def checkrow(shape):
     if row_appeared :
         line_cleared.play()        
         accelarating = 0
+    if lines_appeared == 1:
+        score += (40*(Level-1))
+    if lines_appeared == 2:
+        score += (100*(Level-1))
+    if lines_appeared == 3:
+        score += (300*(Level-1))
     if lines_appeared == 4:
-        score += 500
+        score += (1200*(Level-1))
 
 def isRowAppear(y):
     for x in range(W):
@@ -691,7 +697,10 @@ def RunGame():
                     registerStaticShape(shape['points'])
                     shapeAppeared = False
                     checkrow(shape['points'])
-                    score += 50
+                    if accelarating:
+                        score += 100
+                    else:
+                        socre += 50
                     
                 if not collide(shape['points'],deltay = 1):
                     for point in shape['points']:
@@ -843,7 +852,6 @@ if __name__ == "__main__":
         if scene == Scene.MainMenu:
             MainMenu()
             mixer.music.unload()
-        elif scene == Scene.EndGame:
-            EndGame()
+        elif scene == Scene.EndGame:EndGame()
         elif scene == Scene.RunGame:RunGame()
         else:AudioSelect()
