@@ -700,7 +700,7 @@ def RunGame():
                     if accelarating:
                         score += 100
                     else:
-                        socre += 50
+                        score += 50
                     
                 if not collide(shape['points'],deltay = 1):
                     for point in shape['points']:
