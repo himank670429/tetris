@@ -367,13 +367,13 @@ def checkrow(shape):
         line_cleared.play()        
         accelarating = 0
     if lines_appeared == 1:
-        score += (40*(Level-1))
+        score += (40*(Level+1))
     if lines_appeared == 2:
-        score += (100*(Level-1))
+        score += (100*(Level+1))
     if lines_appeared == 3:
-        score += (300*(Level-1))
+        score += (300*(Level+1))
     if lines_appeared == 4:
-        score += (1200*(Level-1))
+        score += (1200*(Level+1))
 
 def isRowAppear(y):
     for x in range(W):
