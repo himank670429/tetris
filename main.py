@@ -108,7 +108,6 @@ gameFont = path.join(FontFolder,"gameFont.ttf")
 
 # animation sprites
 
-print(listdir(animationFolder))
 animations = {
     types : [
         image.load(f'{animationFolder}//{types}//{frame}')
