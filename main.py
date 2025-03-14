@@ -107,6 +107,8 @@ trophy = transform.scale(image.load(path.join(GUIfolder, "trophy.png")), (50,50)
 gameFont = path.join(FontFolder,"gameFont.ttf")
 
 # animation sprites
+
+print(listdir(animationFolder))
 animations = {
     types : [
         image.load(f'{animationFolder}//{types}//{frame}')
