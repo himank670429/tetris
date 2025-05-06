@@ -3,6 +3,7 @@ from random import randint
 from os import path,listdir
 from pickle import load,dump
 from time import sleep
+import sys
 
 # initialize
 init()
@@ -345,7 +346,7 @@ def checkrow(shape):
                 for Event in event.get():
                     if Event.type == QUIT:
                         quit()
-                        exit()
+                        sys.exit()
                 if now - start > 10:
                     area[(_x,_y)] = False
                     _x += 1
@@ -435,7 +436,7 @@ def game_over_animation():
                 # close high score before quiting
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
-                exit()
+                sys.exit()
             if Event.type == KEYDOWN:
                 if Event.key == K_SPACE or Event.key == K_RETURN:
                     mixer.music.unload()
@@ -502,7 +503,7 @@ def dancer_animation():
                 # close high score before quiting
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
-                exit()
+                sys.exit()
             if Event.type == KEYDOWN:
                 mixer.music.unload()
                 return
@@ -531,7 +532,7 @@ def level_up_animation():
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
                 quit()
-                exit()
+                sys.exit()
             if Event.type == KEYDOWN:
                 flag = 0
         display.update()
@@ -581,7 +582,7 @@ def EndGame():
                 # close high score before quiting
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
-                exit()
+                sys.exit()
             if Event.type == MOUSEBUTTONDOWN: click = True
             if exit_button.isCMousePointerCollide() and click: flag = 0
         if now - start > 10000:
@@ -622,7 +623,7 @@ def RunGame():
                 # close high score before quiting
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
-                exit()
+                sys.exit()
             if Event.type == KEYDOWN:
                 if Event.key == K_UP:rotate = True
                 if Event.key == K_LEFT:dx = -1
@@ -800,7 +801,7 @@ def AudioSelect():
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
                 quit()
-                exit()
+                sys.exit()
             if Event.type == MOUSEBUTTONDOWN:
                 click = True
         if sielenceButton.isCMousePointerCollide() and click:current_music = "None"
@@ -835,7 +836,7 @@ def MainMenu():
                 with open(path.join(fileFolder,datafile),"wb") as file:
                     dump(max(score,highscore),file)
                 quit()
-                exit()
+                sys.exit()
             if _event.type == MOUSEBUTTONDOWN:
                 click = 1
         playbutton.render()
@@ -845,7 +846,7 @@ def MainMenu():
             break
         if quitbutton.isCMousePointerCollide() and click:
             quit()
-            exit()
+            sys.exit()
         display.flip()
 
 if __name__ == "__main__":
