@@ -610,6 +610,7 @@ def RunGame():
         mixer.music.load(current_music)
         mixer.music.play(-1)
     lines = 0
+    StaticTileindex = 0
     # Variables
     while True:
         rotate = False
@@ -748,6 +749,8 @@ def RunGame():
             if score > highscore:
                 highscore_beaten = True
             gameOver = False
+            # reset static tile index
+            StaticTileindex = 0
             scene = Scene.EndGame
             current_music = None
             return
